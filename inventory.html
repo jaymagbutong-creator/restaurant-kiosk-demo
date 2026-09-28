@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Byte Bistro Inventory</title>
+    <style>
+      :root {
+        --ink: #0B0B0B;
+        --muted: #6B6B66;
+        --paper: #F5F0E8;
+        --cream: #E8E1D6;
+        --coral: #C53227;
+        --yellow: #FFB326;
+        --green: #9B1D18;
+        --line: #6B6B66;
+        --orange: #EE6D1C;
+        --glass-paper: rgba(245, 240, 232, .72);
+        --glass-cream: rgba(232, 225, 214, .74);
+        --glass-ink: rgba(11, 11, 11, .9);
+        --glass-line: rgba(107, 107, 102, .48);
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: var(--ink);
+        background: var(--paper);
+        background-image: linear-gradient(135deg, rgba(232, 225, 214, .42), rgba(245, 240, 232, .12) 48%, rgba(238, 109, 28, .06));
+        background-attachment: fixed;
+        font-family: Georgia, 'Times New Roman', serif;
+      }
+
+      @keyframes fade-slide-up {
+        from { opacity: 0; transform: translateY(.7rem); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes fade-slide-in {
+        from { opacity: 0; transform: translateY(-.45rem); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      header, main { animation: fade-slide-up .45s ease-out both; }
+      main { animation-delay: .08s; }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.4rem clamp(1.2rem, 5vw, 5rem);
+        color: var(--paper);
+        background: var(--glass-ink);
+        border-bottom: 4px solid var(--orange);
+        box-shadow: 0 10px 28px rgba(11, 11, 11, .14);
+        -webkit-backdrop-filter: blur(14px);
+        backdrop-filter: blur(14px);
+      }
+      .eyebrow {
+        margin: 0 0 .35rem;
+        color: var(--yellow);
+        font: 700 .72rem 'Courier New', monospace;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+      }
+      h1 { margin: 0; font-size: clamp(2rem, 4vw, 3.4rem); letter-spacing: -.04em; }
+      h2 { margin: 0; font-size: clamp(1.5rem, 3vw, 2.25rem); letter-spacing: -.03em; }
+      h3 { margin: 0; font-size: 1.1rem; }
+      p { line-height: 1.45; }
+      button, input, select { font: inherit; }
+      button {
+        border: 0;
+        border-radius: 0;
+        cursor: pointer;
+        font: 700 .75rem 'Courier New', monospace;
+        text-transform: uppercase;
+        transition: background-color .18s ease, transform .12s ease, opacity .18s ease, box-shadow .18s ease;
+      }
+      button:active:not(:disabled) { transform: translateY(1px) scale(.98); }
+      button:disabled { cursor: not-allowed; opacity: .55; }
+      button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+      .primary-button { padding: .7rem .85rem; color: var(--paper); background: var(--coral); }
+      .primary-button:hover:not(:disabled) { background: var(--orange); }
+      .secondary-button { padding: .7rem .85rem; color: var(--ink); background: var(--glass-paper); border: 1px solid var(--glass-line); }
+      .secondary-button:hover:not(:disabled) { background: var(--yellow); }
+      .connection { display: flex; align-items: center; gap: .5rem; color: var(--cream); font: 700 .72rem 'Courier New', monospace; text-transform: uppercase; }
+      .connection::before { width: .65rem; height: .65rem; content: ''; background: var(--yellow); border-radius: 50%; }
+      .connection.offline::before { background: var(--coral); }
+      .connection.offline { color: var(--paper); }
+
+      main { width: min(120rem, 100%); margin: 0 auto; padding: 2rem clamp(1.2rem, 5vw, 5rem) 4rem; }
+      .page-intro { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
+      .page-intro p { max-width: 42rem; margin: .5rem 0 0; color: var(--muted); font: .78rem 'Courier New', monospace; }
+      .data-status { margin: 0; padding: .6rem .75rem; color: var(--ink); background: var(--glass-cream); border: 1px solid var(--glass-line); font: 700 .7rem 'Courier New', monospace; text-transform: uppercase; white-space: nowrap; }
+      .data-status.ready { color: var(--paper); background: var(--green); }
+      .data-status.error { color: var(--paper); background: var(--coral); }
+
+      .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .8rem; margin-bottom: 1.25rem; }
+      .summary-card, .toolbar, .table-panel, .detail-panel, .movement-panel {
+        background: var(--glass-cream);
+        border: 1px solid var(--glass-line);
+        box-shadow: 0 12px 24px rgba(11, 11, 11, .09), inset 0 1px 0 rgba(245, 240, 232, .5);
+        -webkit-backdrop-filter: blur(14px);
+        backdrop-filter: blur(14px);
+      }
+      .summary-card { min-height: 7rem; padding: 1rem; border-top: 4px solid var(--line); }
+      .summary-card:nth-child(2) { border-top-color: var(--green); }
+      .summary-card:nth-child(3) { border-top-color: var(--yellow); }
+      .summary-card:nth-child(4) { border-top-color: var(--coral); }
+      .summary-label { margin: 0; color: var(--muted); font: 700 .68rem 'Courier New', monospace; text-transform: uppercase; }
+      .summary-value { margin: .55rem 0 0; font: 700 2.2rem 'Courier New', monospace; }
+
+      .toolbar { display: flex; align-items: center; gap: .65rem; margin-bottom: 1.25rem; padding: .8rem; }
+      .search, .toolbar select, .movement-form input, .movement-form select {
+        min-height: 2.55rem;
+        padding: .6rem .7rem;
+        color: var(--ink);
+        background: var(--glass-paper);
+        border: 1px solid var(--glass-line);
+      }
+      .search { flex: 1; min-width: 12rem; }
+      .filter-button { padding: .7rem .8rem; color: var(--ink); background: var(--glass-paper); border: 1px solid var(--glass-line); }
+      .filter-button.active, .filter-button:hover { color: var(--paper); background: var(--green); }
+
+      .workspace { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(20rem, .75fr); gap: 1rem; align-items: start; }
+      .table-panel { overflow: hidden; }
+      .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--glass-line); }
+      .panel-heading p { margin: 0; color: var(--muted); font: .7rem 'Courier New', monospace; }
+      .table-scroll { overflow-x: auto; }
+      table { width: 100%; min-width: 48rem; border-collapse: collapse; }
+      th, td { padding: .8rem 1rem; border-bottom: 1px solid rgba(107, 107, 102, .3); text-align: left; }
+      th { color: var(--muted); background: rgba(245, 240, 232, .3); font: 700 .68rem 'Courier New', monospace; text-transform: uppercase; }
+      td { font-size: .9rem; }
+      td small { display: block; margin-top: .18rem; color: var(--muted); font: .68rem 'Courier New', monospace; }
+      tbody tr { transition: background-color .18s ease, transform .18s ease; }
+      tbody tr:hover { background: rgba(245, 240, 232, .3); transform: translateX(2px); }
+      .empty-row td { padding: 2.5rem 1rem; color: var(--muted); font: .78rem 'Courier New', monospace; text-align: center; }
+      .status { display: inline-block; padding: .3rem .45rem; color: var(--paper); font: 700 .63rem 'Courier New', monospace; white-space: nowrap; }
+      .status.in-stock { background: var(--green); }
+      .status.low-stock { color: var(--ink); background: var(--yellow); }
+      .status.out-of-stock { background: var(--coral); }
+      .view-button { padding: .5rem .6rem; color: var(--paper); background: var(--ink); }
+      .view-button:hover { background: var(--orange); }
+
+      .side-stack { display: grid; gap: 1rem; }
+      .detail-panel, .movement-panel { padding: 1rem; }
+      .detail-placeholder { margin: 1rem 0 0; color: var(--muted); font: .78rem 'Courier New', monospace; }
+      .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; margin: 1rem 0; }
+      .detail-label { margin: 0 0 .2rem; color: var(--muted); font: .65rem 'Courier New', monospace; text-transform: uppercase; }
+      .detail-value { margin: 0; font-weight: 700; }
+      .movements { margin: 1rem 0 0; border-top: 1px solid var(--glass-line); }
+      .movement-row { display: flex; justify-content: space-between; gap: .7rem; padding: .65rem 0; border-bottom: 1px solid rgba(107, 107, 102, .3); font: .72rem 'Courier New', monospace; }
+      .movement-row strong { color: var(--green); }
+      .movement-empty { color: var(--muted); }
+      .movement-form { display: grid; gap: .65rem; margin-top: 1rem; }
+      .movement-form label { color: var(--muted); font: 700 .67rem 'Courier New', monospace; text-transform: uppercase; }
+      .movement-form input, .movement-form select { width: 100%; margin-top: .3rem; }
+      .movement-form button { width: 100%; margin-top: .25rem; }
+      .capability-note { margin: .8rem 0 0; color: var(--muted); font: .68rem/1.4 'Courier New', monospace; }
+      .notice { margin: 1rem 0 0; padding: .8rem 1rem; color: var(--paper); background: var(--green); font: 700 .75rem 'Courier New', monospace; }
+      .notice.error { background: var(--coral); }
+      .notice[hidden] { display: none; }
+      footer { padding: 1.3rem clamp(1.2rem, 5vw, 5rem); color: var(--paper); background: var(--glass-ink); font: .75rem 'Courier New', monospace; }
+
+      @media (max-width: 900px) {
+        .workspace { grid-template-columns: 1fr; }
+        .side-stack { grid-template-columns: 1fr 1fr; }
+      }
+      @media (max-width: 650px) {
+        header, .page-intro { align-items: flex-start; flex-direction: column; }
+        .summary-grid { grid-template-columns: 1fr 1fr; }
+        .toolbar { flex-wrap: wrap; }
+        .search { min-width: 100%; }
+        .side-stack { grid-template-columns: 1fr; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: .01ms !important;
+          animation-iteration-count: 1 !important;
+          scroll-behavior: auto !important;
+          transition-duration: .01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <p class="eyebrow">Operations console // ERPNext inventory</p>
+        <h1>Inventory Management</h1>
+      </div>
+      <div class="connection offline" id="connection">ERPNext unavailable</div>
+    </header>
+
+    <main>
+      <div class="page-intro">
+        <div>
+          <p class="eyebrow">The Byte Bistro // stock control</p>
+          <h2>Inventory</h2>
+          <p>Live stock levels, movements, and reorder visibility from the authoritative inventory system.</p>
+        </div>
+        <p class="data-status" id="data-status">SOURCE // WAITING</p>
+      </div>
+
+      <section class="summary-grid" aria-label="Inventory summary">
+        <article class="summary-card"><p class="summary-label">Total Items</p><p class="summary-value" id="total-items">--</p></article>
+        <article class="summary-card"><p class="summary-label">In Stock</p><p class="summary-value" id="in-stock">--</p></article>
+        <article class="summary-card"><p class="summary-label">Low Stock</p><p class="summary-value" id="low-stock">--</p></article>
+        <article class="summary-card"><p class="summary-label">Out of Stock</p><p class="summary-value" id="out-of-stock">--</p></article>
+      </section>
+
+      <section class="toolbar" aria-label="Inventory search and filters">
+        <input class="search" id="search" type="search" placeholder="Search inventory items" aria-label="Search inventory items" />
+        <button class="filter-button active" data-filter="ALL" type="button">All</button>
+        <button class="filter-button" data-filter="Ingredients" type="button">Ingredients</button>
+        <button class="filter-button" data-filter="Menu Items" type="button">Menu Items</button>
+        <button class="filter-button" data-filter="Drinks" type="button">Drinks</button>
+        <button class="filter-button" data-filter="Packaging" type="button">Packaging</button>
+        <button class="secondary-button" id="refresh" type="button">Refresh</button>
+      </section>
+
+      <div class="workspace">
+        <section class="table-panel" aria-labelledby="inventory-title">
+          <div class="panel-heading"><h2 id="inventory-title">Inventory Items</h2><p id="item-count">0 items</p></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Item Name</th><th>Category</th><th>Current Stock</th><th>Unit</th><th>Minimum Stock</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="inventory-table"><tr class="empty-row"><td colspan="7">Connecting to ERPNext inventory...</td></tr></tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="side-stack">
+          <section class="detail-panel" aria-labelledby="details-title">
+            <h2 id="details-title">Item Details</h2>
+            <div id="item-details"><p class="detail-placeholder">Select an inventory item to view details and recent stock movements.</p></div>
+          </section>
+
+          <section class="movement-panel" aria-labelledby="movement-title">
+            <h2 id="movement-title">Stock Movement</h2>
+            <form class="movement-form" id="movement-form">
+              <label>Item<select id="movement-item" required disabled><option value="">Select an item</option></select></label>
+              <label>Movement Type<select id="movement-type" required disabled><option value="STOCK_IN">Stock In</option><option value="STOCK_OUT">Stock Out</option><option value="ADJUSTMENT">Stock Adjustment</option></select></label>
+              <label>Quantity<input id="movement-quantity" type="number" min="0" step="any" required disabled /></label>
+              <label>Note<input id="movement-note" type="text" maxlength="160" placeholder="Optional note" disabled /></label>
+              <button class="primary-button" type="submit" disabled>Record Movement</button>
+            </form>
+            <p class="capability-note">Stock movements are disabled until the ERPNext inventory API is connected. No local stock values are stored by this page.</p>
+          </section>
+        </div>
+      </div>
+      <p class="notice" id="notice" hidden role="status"></p>
+    </main>
+
+    <footer>THE BYTE BISTRO // INVENTORY SOURCE: ERPNEXT</footer>
+
+    <script>
+      const state = { items: [], filter: 'ALL', query: '', selectedId: null, available: false, movementsAvailable: false };
+      const elements = {
+        connection: document.getElementById('connection'), dataStatus: document.getElementById('data-status'), table: document.getElementById('inventory-table'),
+        itemCount: document.getElementById('item-count'), details: document.getElementById('item-details'), movementItem: document.getElementById('movement-item'),
+        movementForm: document.getElementById('movement-form'), notice: document.getElementById('notice'), total: document.getElementById('total-items'),
+        inStock: document.getElementById('in-stock'), lowStock: document.getElementById('low-stock'), outOfStock: document.getElementById('out-of-stock'),
+      };
+
+      // This adapter is the only boundary between the UI and a future ERPNext inventory API.
+      const inventoryApi = {
+        async list() {
+          const healthResponse = await fetch('/api/health/erpnext', { headers: { Accept: 'application/json' } });
+          if (!healthResponse.ok) throw new Error(`ERPNext health returned ${healthResponse.status}`);
+          const health = await healthResponse.json();
+          if (health.status !== 'configured') throw new Error('ERPNext inventory is not configured');
+          const response = await fetch('/api/inventory', { headers: { Accept: 'application/json' } });
+          if (!response.ok) throw new Error(`Inventory API returned ${response.status}`);
+          return response.json();
+        },
+        async recordMovement(movement) {
+          const response = await fetch('/api/inventory/movements', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(movement),
+          });
+          if (!response.ok) throw new Error(`Inventory movement API returned ${response.status}`);
+          return response.json();
+        },
+      };
+
+      function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+      }
+      function itemId(item) { return item.id || item.item_code || item.itemCode || item.name; }
+      function itemName(item) { return item.item_name || item.itemName || item.name || 'Unnamed item'; }
+      function itemCategory(item) { return item.category || item.item_group || item.itemGroup || 'Uncategorized'; }
+      function currentStock(item) { return Number(item.current_stock ?? item.actual_qty ?? item.stock ?? 0); }
+      function minimumStock(item) { return Number(item.minimum_stock ?? item.reorder_level ?? item.min_stock ?? 0); }
+      function unit(item) { return item.unit || item.stock_uom || item.uom || 'Unit'; }
+      function statusFor(item) {
+        const stock = currentStock(item);
+        if (stock <= 0) return { label: 'OUT OF STOCK', className: 'out-of-stock' };
+        if (stock <= minimumStock(item)) return { label: 'LOW STOCK', className: 'low-stock' };
+        return { label: 'IN STOCK', className: 'in-stock' };
+      }
+      function filteredItems() {
+        return state.items.filter((item) => {
+          const matchesFilter = state.filter === 'ALL' || itemCategory(item).toLowerCase() === state.filter.toLowerCase();
+          const haystack = `${itemName(item)} ${itemCategory(item)} ${itemId(item)}`.toLowerCase();
+          return matchesFilter && (!state.query || haystack.includes(state.query.toLowerCase()));
+        });
+      }
+      function showNotice(message, error = false) {
+        elements.notice.textContent = message;
+        elements.notice.classList.toggle('error', error);
+        elements.notice.hidden = false;
+      }
+      function updateSummary() {
+        const counts = state.items.reduce((summary, item) => { summary[statusFor(item).className] += 1; return summary; }, { 'in-stock': 0, 'low-stock': 0, 'out-of-stock': 0 });
+        elements.total.textContent = state.available ? state.items.length : '--';
+        elements.inStock.textContent = state.available ? counts['in-stock'] : '--';
+        elements.lowStock.textContent = state.available ? counts['low-stock'] : '--';
+        elements.outOfStock.textContent = state.available ? counts['out-of-stock'] : '--';
+      }
+      function renderTable() {
+        const items = filteredItems();
+        elements.itemCount.textContent = `${items.length} ${items.length === 1 ? 'item' : 'items'}`;
+        elements.table.replaceChildren();
+        if (!items.length) {
+          const row = document.createElement('tr'); row.className = 'empty-row';
+          const cell = document.createElement('td'); cell.colSpan = 7;
+          cell.textContent = state.available ? 'No inventory items match the current search or filter.' : 'ERPNext inventory data is not available yet.';
+          row.append(cell); elements.table.append(row); return;
+        }
+        items.forEach((item) => {
+          const status = statusFor(item);
+          const row = document.createElement('tr');
+          row.innerHTML = `<td><strong>${escapeHtml(itemName(item))}</strong><small>${escapeHtml(itemId(item))}</small></td><td>${escapeHtml(itemCategory(item))}</td><td>${currentStock(item)}</td><td>${escapeHtml(unit(item))}</td><td>${minimumStock(item)}</td><td><span class="status ${status.className}">${status.label}</span></td><td><button class="view-button" type="button" data-view-item="${escapeHtml(itemId(item))}">View</button></td>`;
+          elements.table.append(row);
+        });
+      }
+      function renderDetails() {
+        const item = state.items.find((candidate) => String(itemId(candidate)) === String(state.selectedId));
+        if (!item) { elements.details.innerHTML = '<p class="detail-placeholder">Select an inventory item to view details and recent stock movements.</p>'; return; }
+        const status = statusFor(item);
+        const movements = item.recent_movements || item.recentMovements || item.movements || [];
+        elements.details.innerHTML = `<h3>${escapeHtml(itemName(item))}</h3><div class="detail-grid"><div><p class="detail-label">Category</p><p class="detail-value">${escapeHtml(itemCategory(item))}</p></div><div><p class="detail-label">Status</p><p class="detail-value"><span class="status ${status.className}">${status.label}</span></p></div><div><p class="detail-label">Current Stock</p><p class="detail-value">${currentStock(item)} ${escapeHtml(unit(item))}</p></div><div><p class="detail-label">Minimum Stock</p><p class="detail-value">${minimumStock(item)} ${escapeHtml(unit(item))}</p></div></div><h3>Recent Stock Movements</h3><div class="movements">${movements.length ? movements.slice(0, 5).map((movement) => `<div class="movement-row"><span>${escapeHtml(movement.type || movement.movement_type || 'MOVEMENT')}<br />${escapeHtml(movement.date || movement.created_at || '')}</span><strong>${escapeHtml(movement.quantity ?? '')}</strong></div>`).join('') : '<p class="movement-empty">No recent movements supplied by ERPNext.</p>'}</div>`;
+        elements.movementItem.value = itemId(item);
+      }
+      function populateMovementItems() {
+        elements.movementItem.replaceChildren(new Option('Select an item', ''));
+        state.items.forEach((item) => elements.movementItem.append(new Option(itemName(item), itemId(item))));
+        elements.movementItem.disabled = !state.movementsAvailable;
+        elements.movementForm.querySelectorAll('input, select, button').forEach((control) => { control.disabled = !state.movementsAvailable; });
+      }
+      async function loadInventory() {
+        elements.dataStatus.textContent = 'SOURCE // LOADING';
+        try {
+          const result = await inventoryApi.list();
+          state.items = result.items || result.inventory || [];
+          state.movementsAvailable = Boolean(result.capabilities?.movements);
+          state.available = true;
+          elements.connection.textContent = 'ERPNext connected'; elements.connection.classList.remove('offline');
+          elements.dataStatus.textContent = 'SOURCE // ERPNEXT'; elements.dataStatus.classList.add('ready');
+        } catch (error) {
+          state.items = []; state.available = false; state.movementsAvailable = false;
+          elements.connection.textContent = 'ERPNext unavailable'; elements.connection.classList.add('offline');
+          elements.dataStatus.textContent = 'SOURCE // UNAVAILABLE'; elements.dataStatus.classList.add('error');
+          showNotice('Inventory API is not available. No local or fake stock data was loaded.', true);
+        }
+        updateSummary(); populateMovementItems(); renderTable(); renderDetails();
+      }
+
+      document.querySelectorAll('[data-filter]').forEach((button) => button.addEventListener('click', () => {
+        state.filter = button.dataset.filter;
+        document.querySelectorAll('[data-filter]').forEach((candidate) => candidate.classList.toggle('active', candidate === button));
+        renderTable();
+      }));
+      document.getElementById('search').addEventListener('input', (event) => { state.query = event.target.value.trim(); renderTable(); });
+      document.getElementById('refresh').addEventListener('click', loadInventory);
+      elements.table.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-view-item]');
+        if (!button) return;
+        state.selectedId = button.dataset.viewItem; renderDetails();
+      });
+      elements.movementForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (!state.available) return showNotice('Connect ERPNext inventory before recording a movement.', true);
+        const payload = { item_id: elements.movementItem.value, movement_type: document.getElementById('movement-type').value, quantity: Number(document.getElementById('movement-quantity').value), note: document.getElementById('movement-note').value.trim() };
+        try { await inventoryApi.recordMovement(payload); showNotice('Stock movement recorded. Refreshing inventory.'); event.target.reset(); await loadInventory(); }
+        catch (error) { showNotice('The ERPNext inventory API could not record this movement.', true); }
+      });
+
+      updateSummary(); loadInventory();
+    </script>
+  </body>
+</html>

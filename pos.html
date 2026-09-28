@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Byte Bistro POS</title>
+    <style>
+      :root {
+        --ink: #0B0B0B;
+        --paper: #F5F0E8;
+        --cream: #E8E1D6;
+        --operational-red: #9B1D18;
+        --signal-red: #C53227;
+        --orange: #EE6D1C;
+        --glow: #FFB326;
+        --stone: #6B6B66;
+        --line: rgba(107, 107, 102, .42);
+        --green: #275f4a;
+      }
+
+      * { box-sizing: border-box; }
+      body { margin: 0; color: var(--ink); background: var(--paper); font-family: Georgia, 'Times New Roman', serif; }
+      button, input { font: inherit; }
+      button { border: 0; border-radius: 0; cursor: pointer; }
+      button:focus-visible, input:focus-visible { outline: 3px solid var(--glow); outline-offset: 2px; }
+      .shell { min-height: 100vh; display: grid; grid-template-rows: auto auto 1fr; }
+      header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.3rem clamp(1.2rem, 4vw, 4rem); color: var(--paper); background: var(--ink); border-bottom: 4px solid var(--orange); }
+      .eyebrow { margin: 0 0 .35rem; color: var(--glow); font: 700 .72rem 'Courier New', monospace; letter-spacing: .12em; text-transform: uppercase; }
+      h1 { margin: 0; font-size: clamp(1.8rem, 3vw, 3rem); letter-spacing: -.04em; }
+      .connection { display: flex; align-items: center; gap: .5rem; color: var(--cream); font: 700 .75rem 'Courier New', monospace; text-transform: uppercase; }
+      .connection::before { width: .65rem; height: .65rem; content: ''; background: var(--glow); border-radius: 50%; }
+      .connection.offline::before { background: var(--signal-red); }
+      .toolbar { display: flex; gap: .65rem; align-items: center; padding: .85rem clamp(1.2rem, 4vw, 4rem); background: var(--cream); border-bottom: 1px solid var(--line); }
+      .toolbar button, .search { padding: .7rem .85rem; color: var(--ink); background: var(--paper); border: 1px solid var(--line); }
+      .toolbar button.active, .toolbar button:hover { color: var(--paper); background: var(--operational-red); }
+      .search { flex: 1; max-width: 25rem; }
+      main { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(20rem, .8fr); gap: 1rem; width: min(120rem, 100%); margin: 0 auto; padding: 1.2rem clamp(1.2rem, 4vw, 4rem) 3rem; }
+      .board-header { display: flex; justify-content: space-between; align-items: end; gap: 1rem; margin-bottom: .9rem; }
+      .board-header h2 { margin: 0; font-size: 2rem; }
+      .board-header p { margin: 0; color: var(--stone); font: .75rem 'Courier New', monospace; }
+      .orders { display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: .8rem; align-content: start; }
+      .order-card { padding: 1rem; background: var(--cream); border: 1px solid var(--line); border-top: 4px solid var(--operational-red); }
+      .order-card h3 { margin: 0; font-size: 1.35rem; }
+      .order-meta { display: flex; flex-wrap: wrap; gap: .4rem .7rem; margin: .55rem 0 .9rem; color: var(--stone); font: .72rem 'Courier New', monospace; text-transform: uppercase; }
+      .order-total { display: flex; justify-content: space-between; gap: 1rem; padding-top: .8rem; border-top: 1px solid var(--line); font: 700 1.05rem 'Courier New', monospace; }
+      .badge { display: inline-block; padding: .3rem .45rem; color: var(--paper); background: var(--operational-red); font: 700 .66rem 'Courier New', monospace; text-transform: uppercase; }
+      .badge.paid { background: var(--green); }
+      .badge.pending { color: var(--ink); background: var(--glow); }
+      .card-actions { display: flex; gap: .5rem; margin-top: .9rem; }
+      .card-actions button, .primary { flex: 1; padding: .65rem .75rem; color: var(--paper); background: var(--ink); font: 700 .72rem 'Courier New', monospace; text-transform: uppercase; }
+      .card-actions button:hover, .primary:hover { background: var(--orange); }
+      .empty, .error { grid-column: 1 / -1; padding: 2rem; color: var(--stone); background: var(--cream); border-left: 4px solid var(--orange); font: .85rem 'Courier New', monospace; }
+      .error { color: var(--paper); background: var(--signal-red); border-left: 0; }
+      .detail { position: sticky; top: 1rem; align-self: start; min-height: 20rem; padding: 1.2rem; background: var(--cream); border-top: 4px solid var(--orange); }
+      .detail h2 { margin: 0; font-size: 1.8rem; }
+      .detail-placeholder { color: var(--stone); font: .8rem 'Courier New', monospace; }
+      .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; margin: 1rem 0; }
+      .detail-label { margin: 0 0 .2rem; color: var(--stone); font: .67rem 'Courier New', monospace; text-transform: uppercase; }
+      .detail-value { margin: 0; font-weight: 700; }
+      .line-items { margin: 1rem 0; border-top: 1px solid var(--line); }
+      .line-item { display: flex; justify-content: space-between; gap: 1rem; padding: .65rem 0; border-bottom: 1px solid var(--line); }
+      .line-item p { margin: 0; }
+      .line-item small { display: block; margin-top: .2rem; color: var(--stone); font: .72rem 'Courier New', monospace; }
+      .summary { display: grid; gap: .4rem; margin: 1rem 0; padding-top: .8rem; border-top: 2px solid var(--ink); font: .85rem 'Courier New', monospace; }
+      .summary div { display: flex; justify-content: space-between; gap: 1rem; }
+      .summary .grand { color: var(--operational-red); font-size: 1.1rem; font-weight: 700; }
+      .detail-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+      .detail-actions button { padding: .7rem .8rem; color: var(--paper); background: var(--operational-red); font: 700 .72rem 'Courier New', monospace; text-transform: uppercase; }
+      .detail-actions button.secondary { color: var(--ink); background: var(--paper); }
+      .cash-panel { margin-top: 1rem; padding: 1rem; background: var(--paper); border: 1px solid var(--line); }
+      .cash-panel[hidden], .modal[hidden] { display: none; }
+      .cash-panel label { display: block; margin-bottom: .35rem; color: var(--stone); font: .7rem 'Courier New', monospace; text-transform: uppercase; }
+      .cash-panel input { width: 100%; padding: .65rem; color: var(--ink); background: var(--cream); border: 1px solid var(--line); }
+      .change { margin: .8rem 0; color: var(--green); font: 700 1.2rem 'Courier New', monospace; }
+      .modal { position: fixed; inset: 0; display: grid; place-items: center; padding: 1rem; background: rgba(11, 11, 11, .7); z-index: 2; }
+      .modal-content { width: min(32rem, 100%); padding: 1.4rem; background: var(--paper); }
+      .modal h2 { margin-top: 0; }
+      .modal-actions { display: flex; justify-content: flex-end; gap: .6rem; margin-top: 1rem; }
+      .receipt { white-space: pre-wrap; padding: 1rem; background: var(--cream); font: .78rem/1.5 'Courier New', monospace; }
+      @media (max-width: 850px) { main { grid-template-columns: 1fr; } .detail { position: static; } }
+      @media (max-width: 560px) { header, .toolbar { align-items: flex-start; flex-direction: column; } .toolbar { flex-wrap: wrap; } .search { max-width: none; width: 100%; } }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <div><p class="eyebrow">Cashier console // shared system</p><h1>The Byte Bistro POS</h1></div>
+        <div class="connection" id="connection">Connecting</div>
+      </header>
+      <nav class="toolbar" aria-label="Order filters">
+        <button class="active" data-filter="ALL" type="button">All</button>
+        <button data-filter="NEW" type="button">New</button>
+        <button data-filter="PREPARING" type="button">Preparing</button>
+        <button data-filter="READY" type="button">Ready</button>
+        <button data-filter="COMPLETED" type="button">Completed</button>
+        <button data-filter="CANCELLED" type="button">Cancelled</button>
+        <input class="search" id="search" type="search" placeholder="Search order number" aria-label="Search orders" />
+        <button id="refresh" type="button">Refresh</button>
+      </nav>
+      <main>
+        <section>
+          <div class="board-header"><div><h2>Orders</h2><p id="last-updated">Waiting for backend</p></div><p id="order-count">0 orders</p></div>
+          <div class="orders" id="orders"><div class="empty">Loading orders from the Geek Restaurant backend...</div></div>
+        </section>
+        <aside class="detail" id="detail" aria-live="polite"><h2>Order Detail</h2><p class="detail-placeholder">Select an order to view items, payment, status, and actions.</p></aside>
+      </main>
+    </div>
+
+    <div class="modal" id="receipt-modal" hidden>
+      <div class="modal-content"><h2>Receipt</h2><div class="receipt" id="receipt"></div><div class="modal-actions"><button class="secondary" id="close-receipt" type="button">Close</button><button class="primary" id="print-receipt" type="button">Print</button></div></div>
+    </div>
+
+    <script>
+      const money = new Intl.NumberFormat('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const state = { orders: [], selectedId: null, filter: 'ALL', query: '', source: 'BACKEND' };
+      const ordersElement = document.getElementById('orders');
+      const detailElement = document.getElementById('detail');
+      const connectionElement = document.getElementById('connection');
+      const lastUpdatedElement = document.getElementById('last-updated');
+      const orderCountElement = document.getElementById('order-count');
+      const orderSources = ['KIOSK', 'CASHIER', 'ONLINE', 'OTHER'];
+      const paymentStates = ['UNPAID', 'PAYMENT_PENDING', 'PAID', 'PAYMENT_FAILED', 'PAYMENT_CANCELLED', 'REFUNDED'];
+      const orderStates = ['NEW', 'CONFIRMED', 'PREPARING', 'READY', 'COMPLETED', 'CANCELLED'];
+
+      const peso = (value) => `₱${money.format(Number(value || 0))}`;
+      const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+      const orderId = (order) => order.id || order.orderId || order.order_number || order.orderNumber;
+      const orderNumber = (order) => order.orderNumber || order.order_number || order.id || 'Unknown';
+      const orderStatus = (order) => order.orderStatus || order.order_status || order.status || 'NEW';
+      const paymentStatus = (order) => order.paymentStatus || order.payment_status || order.payment?.status || 'UNPAID';
+      const paymentMethod = (order) => order.paymentMethod || order.payment_method || order.payment?.method || 'Not specified';
+      const items = (order) => order.items || [];
+      const orderTotal = (order) => order.total ?? order.grandTotal ?? items(order).reduce((sum, item) => sum + itemLineTotal(item), 0);
+      const itemUnitPrice = (item) => Number(item.unit_price ?? item.unitPrice ?? item.price ?? 0);
+      const itemLineTotal = (item) => Number(item.subtotal ?? item.line_total ?? itemUnitPrice(item) * Number(item.quantity || 0));
+      const orderDate = (order) => order.createdAt || order.created_at || Date.now();
+      const orderTax = (order) => Number(order.tax ?? order.tax_amount ?? order.taxAmount ?? 0);
+      const orderDiscount = (order) => Number(order.discount ?? order.discount_amount ?? order.discountAmount ?? 0);
+      const taxLabel = (order) => order.tax_type || order.taxType || (orderTax(order) > 0 ? 'Tax' : 'Tax not applicable');
+      const merchant = (order) => order.merchant || {};
+
+      function setConnection(online) {
+        connectionElement.textContent = online ? 'Backend connected' : 'Backend unavailable';
+        connectionElement.classList.toggle('offline', !online);
+      }
+
+      function filteredOrders() {
+        return state.orders.filter((order) => {
+          const matchesFilter = state.filter === 'ALL' || orderStatus(order) === state.filter;
+          const matchesQuery = !state.query || String(orderNumber(order)).toLowerCase().includes(state.query.toLowerCase());
+          return matchesFilter && matchesQuery;
+        });
+      }
+
+      function renderOrders() {
+        const orders = filteredOrders();
+        orderCountElement.textContent = `${orders.length} ${orders.length === 1 ? 'order' : 'orders'}`;
+        ordersElement.replaceChildren();
+        if (!orders.length) {
+          const empty = document.createElement('div');
+          empty.className = 'empty';
+          empty.textContent = state.orders.length ? 'No orders match this filter.' : 'No orders are available from the backend.';
+          ordersElement.append(empty);
+          return;
+        }
+        orders.forEach((order) => {
+          const card = document.createElement('article');
+          const payment = paymentStatus(order);
+          card.className = 'order-card';
+          card.innerHTML = `<h3>ORDER #${escapeHtml(orderNumber(order))}</h3>
+            <div class="order-meta"><span>${escapeHtml(order.source || 'OTHER')}</span><span>QUEUE ${escapeHtml(order.queue_number || order.queueNumber || 'N/A')}</span><span>${escapeHtml(new Date(order.createdAt || order.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</span><span class="badge ${payment === 'PAID' ? 'paid' : 'pending'}">${escapeHtml(payment)}</span><span class="badge">${escapeHtml(orderStatus(order))}</span></div>
+            <div class="order-total"><span>${items(order).length} line items</span><strong>${peso(orderTotal(order))}</strong></div>
+            <div class="card-actions"><button data-view="${escapeHtml(orderId(order))}" type="button">View Order</button></div>`;
+          ordersElement.append(card);
+        });
+      }
+
+      function renderDetail() {
+        const order = state.orders.find((candidate) => String(orderId(candidate)) === String(state.selectedId));
+        if (!order) {
+          detailElement.innerHTML = '<h2>Order Detail</h2><p class="detail-placeholder">Select an order to view items, payment, status, and actions.</p>';
+          return;
+        }
+        const payment = paymentStatus(order);
+        const status = orderStatus(order);
+        detailElement.innerHTML = `<h2>ORDER #${escapeHtml(orderNumber(order))}</h2>
+          <div class="detail-grid">
+            <div><p class="detail-label">Source</p><p class="detail-value">${escapeHtml(order.source || 'OTHER')}</p></div>
+            <div><p class="detail-label">Queue</p><p class="detail-value">${escapeHtml(order.queue_number || order.queueNumber || 'N/A')}</p></div>
+            <div><p class="detail-label">Created</p><p class="detail-value">${escapeHtml(new Date(order.createdAt || order.created_at || Date.now()).toLocaleString())}</p></div>
+            <div><p class="detail-label">Payment</p><p class="detail-value">${escapeHtml(paymentMethod(order))}</p></div>
+            <div><p class="detail-label">Payment Status</p><p class="detail-value"><span class="badge ${payment === 'PAID' ? 'paid' : 'pending'}">${escapeHtml(payment)}</span></p></div>
+          </div>
+          <div class="line-items">${items(order).map((item) => `<div class="line-item"><p>${escapeHtml(item.category || 'Uncategorized')} // ${escapeHtml(item.name)}<small>${escapeHtml(item.quantity)} × ${peso(itemUnitPrice(item))} // Line total ${peso(itemLineTotal(item))}</small></p><strong>${peso(itemLineTotal(item))}</strong></div>`).join('')}</div>
+          <div class="summary"><div><span>Subtotal</span><strong>${peso(order.subtotal ?? orderTotal(order))}</strong></div><div><span>Discount</span><strong>-${peso(orderDiscount(order))}</strong></div><div><span>${escapeHtml(taxLabel(order))}</span><strong>${orderTax(order) > 0 ? peso(orderTax(order)) : 'Not applicable'}</strong></div><div class="grand"><span>Total</span><strong>${peso(orderTotal(order))}</strong></div></div>
+          <div class="detail-actions">
+            ${status === 'NEW' ? '<button data-status="CONFIRMED" type="button">Confirm Order</button>' : ''}
+            ${status === 'CONFIRMED' ? '<button data-status="PREPARING" type="button">Start Preparing</button>' : ''}
+            ${status === 'PREPARING' ? '<button data-status="READY" type="button">Mark Ready</button>' : ''}
+            ${status === 'READY' ? '<button data-status="COMPLETED" type="button">Complete</button>' : ''}
+            ${!['COMPLETED', 'CANCELLED'].includes(status) ? '<button data-cancel type="button">Cancel Order</button>' : ''}
+            ${['UNPAID', 'PAYMENT_PENDING'].includes(payment) && ['cash', 'cash-counter'].includes(String(order.paymentMethod || order.payment_method || order.payment?.method || '').toLowerCase()) ? '<button data-cash type="button">Confirm Cash Payment</button>' : ''}
+            <button class="secondary" data-receipt type="button">Receipt</button>
+          </div>
+          <div class="cash-panel" id="cash-panel" hidden><label for="cash-received">Cash Received</label><input id="cash-received" type="number" min="0" step="0.01" /><p class="change" id="change">Change: ${peso(0)}</p><button class="primary" data-cash-confirm type="button">Confirm Cash Payment</button></div>`;
+      }
+
+      async function request(path, options = {}) {
+        const response = await fetch(path, { headers: { 'Content-Type': 'application/json', ...options.headers }, ...options });
+        if (!response.ok) throw new Error(`Backend returned ${response.status}`);
+        return response.status === 204 ? null : response.json();
+      }
+
+      async function loadOrders() {
+        try {
+          const result = await request('/api/orders?view=pos');
+          state.orders = Array.isArray(result) ? result : (result.orders || []);
+          setConnection(true);
+          lastUpdatedElement.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+          renderOrders();
+          renderDetail();
+        } catch (error) {
+          setConnection(false);
+          ordersElement.innerHTML = '<div class="error">Unable to connect to the restaurant system. Retry when the backend is available.</div>';
+          lastUpdatedElement.textContent = 'Backend unavailable';
+        }
+      }
+
+      async function updateOrderStatus(status) {
+        const order = state.orders.find((candidate) => String(orderId(candidate)) === String(state.selectedId));
+        if (!order) return;
+        try {
+          await request(`/api/orders/${encodeURIComponent(orderId(order))}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+          await loadOrders();
+        } catch (error) { alert('Unable to update order status.'); }
+      }
+
+      function receiptText(order) {
+        const configuredMerchant = merchant(order);
+        const address = configuredMerchant.address || order.merchant_address || '';
+        const contact = configuredMerchant.contact || order.merchant_contact || '';
+        const received = order.cash_received ?? order.payment?.cash_received;
+        const change = order.change ?? order.payment?.change;
+        const tax = orderTax(order);
+        const taxLine = tax > 0 ? `${taxLabel(order)}: ${peso(tax)}` : `${taxLabel(order)}: NOT APPLICABLE`;
+        return [
+          configuredMerchant.name || 'THE BYTE BISTRO', address, contact,
+          `ORDER / RECEIPT #${orderNumber(order)}`,
+          `DATE / TIME: ${new Date(orderDate(order)).toLocaleString()}`,
+          `CASHIER / SOURCE: ${order.cashier || order.cashier_name || order.source || 'OTHER'}`,
+          '',
+          ...items(order).map((item) => `${item.category || 'Uncategorized'}\n${item.name}\n  ${item.quantity} × ${peso(itemUnitPrice(item))} = ${peso(itemLineTotal(item))}`),
+          '',
+          `SUBTOTAL: ${peso(order.subtotal ?? orderTotal(order))}`,
+          `DISCOUNT: ${orderDiscount(order) > 0 ? `-${peso(orderDiscount(order))}` : 'NONE'}`,
+          taxLine,
+          `TOTAL AMOUNT DUE: ${peso(orderTotal(order))}`,
+          '',
+          `PAYMENT METHOD: ${paymentMethod(order)}`,
+          `PAYMENT STATUS: ${paymentStatus(order)}`,
+          received !== undefined ? `CASH RECEIVED: ${peso(received)}` : null,
+          change !== undefined ? `CHANGE: ${peso(change)}` : null,
+          `TRANSACTION / PAYMENT REFERENCE: ${order.payment?.transaction_id || order.transaction_id || 'Not available'}`,
+          `ORDER STATUS: ${orderStatus(order)}`,
+        ].filter((line) => line !== null).join('\n');
+      }
+
+      document.querySelectorAll('[data-filter]').forEach((button) => button.addEventListener('click', () => {
+        document.querySelectorAll('[data-filter]').forEach((candidate) => candidate.classList.remove('active'));
+        button.classList.add('active'); state.filter = button.dataset.filter; renderOrders();
+      }));
+      document.getElementById('search').addEventListener('input', (event) => { state.query = event.target.value; renderOrders(); });
+      document.getElementById('refresh').addEventListener('click', loadOrders);
+      ordersElement.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-view]');
+        if (button) { state.selectedId = button.dataset.view; renderDetail(); }
+      });
+      detailElement.addEventListener('input', (event) => {
+        if (event.target.id !== 'cash-received') return;
+        const order = state.orders.find((candidate) => String(orderId(candidate)) === String(state.selectedId));
+        document.getElementById('change').textContent = `Change: ${peso(Number(event.target.value || 0) - orderTotal(order))}`;
+      });
+      detailElement.addEventListener('click', async (event) => {
+        const order = state.orders.find((candidate) => String(orderId(candidate)) === String(state.selectedId));
+        if (!order) return;
+        if (event.target.closest('[data-status]')) await updateOrderStatus(event.target.closest('[data-status]').dataset.status);
+        if (event.target.closest('[data-cancel]')) {
+          try { await request(`/api/orders/${encodeURIComponent(orderId(order))}/cancel`, { method: 'POST' }); await loadOrders(); } catch (error) { alert('Unable to cancel order.'); }
+        }
+        if (event.target.closest('[data-receipt]')) {
+          document.getElementById('receipt').textContent = receiptText(order);
+          document.getElementById('receipt-modal').hidden = false;
+        }
+        if (event.target.closest('[data-cash]')) document.getElementById('cash-panel').hidden = false;
+        if (event.target.closest('[data-cash-confirm]')) {
+          const received = Number(document.getElementById('cash-received').value || 0);
+          if (received < orderTotal(order)) { alert('Cash received is less than the amount due.'); return; }
+          try { await request(`/api/orders/${encodeURIComponent(orderId(order))}/payment/cash`, { method: 'POST', body: JSON.stringify({ amountDue: orderTotal(order), cashReceived: received }) }); await loadOrders(); } catch (error) { alert('Unable to confirm cash payment.'); }
+        }
+      });
+      document.getElementById('close-receipt').addEventListener('click', () => { document.getElementById('receipt-modal').hidden = true; });
+      document.getElementById('print-receipt').addEventListener('click', () => window.print());
+      loadOrders();
+      setInterval(loadOrders, 10000);
+    </script>
+  </body>
+</html>

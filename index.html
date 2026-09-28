@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Byte Bistro Kiosk</title>
+  <style>
+    :root { --ink:#111; --paper:#f7f1e7; --cream:#ebe0d0; --orange:#e36b2c; --green:#27745b; --coral:#b83d34; --muted:#6b6b66; --line:#c9bca9; --glass:rgba(255,250,242,.72); }
+    * { box-sizing:border-box; } body { margin:0; color:var(--ink); background:var(--paper); font-family:Georgia,'Times New Roman',serif; }
+    button { border:0; border-radius:8px; cursor:pointer; font:700 .82rem 'Courier New',monospace; text-transform:uppercase; transition:background-color .15s ease,scale .12s ease; } button:disabled { cursor:wait; opacity:.55; } button:active:not(:disabled) { scale:.97; }
+    header { padding:.8rem clamp(1rem,3vw,2rem); color:var(--paper); background:var(--ink); border-bottom:2px solid var(--orange); } h1,h2,h3,p { margin-top:0; } h1 { margin-bottom:0; font-size:1.45rem; } header > .eyebrow,header > p:last-child { display:none; } .eyebrow,.label { font:700 .72rem 'Courier New',monospace; text-transform:uppercase; }
+    main { width:min(1200px,calc(100% - 2rem)); margin:1rem auto 2rem; } .screen[hidden] { display:none; } .screen { opacity:1; transform:translateY(0); transition:opacity 320ms ease,transform 320ms ease; } .screen.is-leaving { opacity:0; transform:translateY(-4px); pointer-events:none; transition-duration:160ms; } .screen.is-entering { opacity:0; transform:translateY(6px); pointer-events:none; }
+    .glass { padding:clamp(1rem,3vw,1.75rem); background:#fffdf8; border:1px solid var(--line); border-radius:8px; box-shadow:none; backdrop-filter:none; }
+    .start { display:grid; gap:1.4rem; max-width:760px; margin:5vh auto; text-align:center; } .start h2 { font-size:clamp(2rem,6vw,4.5rem); margin-bottom:0; } .welcome-logo { display:block; width:auto; height:auto; max-width:min(100%,22rem); max-height:28dvh; margin:0 auto; object-fit:contain; } .choice-grid,.category-list,.item-grid,.payment-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(12rem,1fr)); gap:.75rem; } .choice { min-height:5rem; color:var(--paper); background:var(--green); font-size:1rem; } .choice:hover,.primary:hover { background:var(--orange); }
+    body.pre-menu header,body.pre-menu footer { display:none; }
+    body.pre-menu main { display:grid; place-items:center; width:100%; min-height:100dvh; margin:0; padding:clamp(1rem,4vh,2rem); }
+    .welcome-screen,.order-type-screen { width:min(100%,36rem); }
+    .welcome-screen { position:fixed; inset:0; z-index:5; width:100%; height:100vh; height:100dvh; min-height:100vh; min-height:100dvh; overflow:hidden; animation:none; }
+    .welcome-screen .welcome-logo { position:absolute; inset:0; display:block; width:100%; height:100%; max-width:none; max-height:none; margin:0; object-fit:cover; animation:welcome-float 12s ease-in-out infinite alternate; }
+    @keyframes welcome-float { from { transform:translateY(0) scale(1.02); } to { transform:translateY(-4px) scale(1.04); } }
+    .tap-to-order { position:absolute; left:50%; bottom:clamp(1.25rem,6vh,4rem); z-index:1; transform:translateX(-50%); width:min(calc(100% - 2rem),28rem); min-height:6rem; font-size:1.3rem; animation:tap-pulse 3.5s ease-in-out infinite; }
+    @keyframes tap-pulse { 0%,100% { box-shadow:0 0 0 rgba(17,17,17,0); } 50% { box-shadow:0 4px 16px rgba(17,17,17,.16); } }
+    .order-type-screen { display:grid; place-items:center; }
+    .order-type-grid { display:grid; gap:1rem; width:min(100%,32rem); }
+    .order-type-grid .choice { min-height:9rem; font-size:1.3rem; }
+    .toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.65rem; margin-bottom:.75rem; } .toolbar h2 { margin:0; } .secondary,.primary,.payment-choice { min-height:2.8rem; padding:.7rem .9rem; border:1px solid var(--line); border-radius:7px; background:#fffdf8; color:var(--ink); } .primary { color:var(--paper); background:var(--green); border-color:var(--green); } .category-list button.active,.payment-choice.selected { color:var(--paper); background:var(--orange); }
+    #menu-screen { width:100%; }
+    .menu-layout { display:grid; grid-template-columns:165px minmax(0,1fr) 250px; gap:.85rem; align-items:start; }
+    .category-rail,.menu-order { position:sticky; top:.75rem; padding:.75rem; background:#fffdf8; border:1px solid var(--line); border-radius:8px; box-shadow:none; backdrop-filter:none; }
+    .category-rail h3,.menu-order h3 { margin-bottom:.65rem; font-size:.95rem; }
+    .category-list { display:grid; grid-template-columns:1fr; gap:.4rem; }
+    .category-list button { min-height:3rem; padding:.6rem .65rem; text-align:left; font-size:.78rem; border-radius:7px; }
+    .category-list button.active { border-color:var(--orange); box-shadow:inset 3px 0 0 var(--orange); }
+    .menu-catalog { min-width:0; }
+    .menu-catalog .toolbar { padding:.1rem 0 .55rem; }
+    .item-grid { grid-template-columns:repeat(auto-fill,minmax(175px,1fr)); gap:.7rem; }
+    .item { display:flex; flex-direction:column; min-width:0; overflow:hidden; background:#fffdf8; border:1px solid var(--line); border-radius:8px; box-shadow:none; animation:item-enter 280ms ease-out both; animation-delay:calc(var(--item-index,0) * 28ms); }
+    .item:nth-child(2) { animation-delay:30ms; } .item:nth-child(3) { animation-delay:60ms; } .item:nth-child(4) { animation-delay:90ms; } .item:nth-child(5) { animation-delay:120ms; } .item:nth-child(6) { animation-delay:150ms; } .item:nth-child(7) { animation-delay:180ms; }
+    @keyframes item-enter { from { opacity:0; transform:translateY(7px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes cart-enter { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes cart-exit { to { opacity:0; transform:translateX(6px); } }
+    .menu-order-line,.order-list .line { animation:cart-enter 220ms ease-out both; }
+    .order-list .line.cart-line-out { animation:cart-exit 180ms ease-in both; pointer-events:none; }
+    .item-image { display:grid; place-items:center; width:100%; aspect-ratio:1.4; overflow:hidden; color:var(--green); background:var(--cream); border:0; border-radius:0; font:400 3.5rem Georgia,'Times New Roman',serif; text-transform:none; }
+    .item-image img { width:100%; height:100%; object-fit:cover; }
+    .item-body { display:flex; flex:1; flex-direction:column; gap:.55rem; padding:.75rem; }
+    .item h3 { margin-bottom:0; font-size:.98rem; line-height:1.25; }
+    .item p { flex:1; min-height:0; margin-bottom:.2rem; color:var(--muted); font-size:.82rem; }
+    .item-footer,.line,.summary-row { display:flex; justify-content:space-between; gap:1rem; align-items:center; }
+    .price { font:700 1rem 'Courier New',monospace; }
+    .item .primary { min-height:2.8rem; padding:.6rem .8rem; border-radius:7px; }
+    @keyframes order-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-3px); } }
+    .menu-order { max-height:calc(100dvh - 2rem); overflow:auto; animation:order-float 5s ease-in-out infinite; }
+    .menu-order-list { display:grid; gap:.45rem; max-height:34dvh; overflow:auto; }
+    .menu-order-line { padding-bottom:.45rem; border-bottom:1px solid var(--line); font-size:.76rem; }
+    .menu-order-line small { display:block; margin-top:.15rem; color:var(--muted); }
+    .order-list { display:grid; gap:.5rem; } .line { padding:.65rem 0; border-bottom:1px solid var(--line); align-items:flex-start; } .line small,.muted { color:var(--muted); } .quantity { display:flex; align-items:center; gap:.35rem; } .quantity button { min-width:2.25rem; min-height:2.25rem; border-radius:6px; background:var(--cream); } .summary { display:grid; gap:.4rem; margin-top:.75rem; padding-top:.75rem; border-top:1px solid var(--line); font:700 .85rem 'Courier New',monospace; } .grand { font-size:1.05rem; }
+    .actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:.65rem; margin-top:1.25rem; } .notice { margin-top:1rem; padding:.8rem; color:var(--paper); background:var(--coral); font:700 .82rem 'Courier New',monospace; } .notice.ok { background:var(--green); } .payment-grid { grid-template-columns:repeat(auto-fit,minmax(10rem,1fr)); } .receipt { display:grid; gap:.35rem; margin-top:1.25rem; padding:1rem; background:#fffdf8; border:1px dashed var(--ink); } .receipt-items { padding:.7rem 0; margin:.5rem 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); } .status { margin-top:1rem; padding:1rem; color:var(--paper); background:var(--ink); } .status strong { color:#ffd45c; } footer { padding:1rem; text-align:center; font:700 .7rem 'Courier New',monospace; }
+    @media (max-width:1050px) { .menu-layout { grid-template-columns:130px minmax(0,1fr); gap:.65rem; } .menu-order { grid-column:2; position:sticky; top:auto; bottom:.5rem; z-index:2; max-height:32dvh; } .menu-order-list { max-height:12dvh; } .item-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:.6rem; } }
+    @media (max-width:700px) {
+      header { padding:.65rem .85rem; }
+      h1 { font-size:1.25rem; }
+      main { width:100%; margin:.5rem 0 0; }
+      .menu-layout { --category-width:5.5rem; grid-template-columns:var(--category-width) minmax(0,1fr); gap:.5rem; padding:0 .5rem; }
+      .category-rail { position:sticky; top:.4rem; z-index:3; padding:.2rem; background:transparent; border:0; }
+      .category-rail h3,.category-rail .eyebrow { display:none; }
+      .category-list { gap:.35rem; }
+      .category-list button { min-height:2.85rem; padding:.35rem .2rem; font-size:.65rem; line-height:1.15; text-align:center; overflow-wrap:anywhere; }
+      .menu-catalog .toolbar { gap:.35rem; padding:.1rem 0 .4rem; }
+      .menu-catalog .toolbar h2 { font-size:1rem; }
+      .item-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:.45rem; }
+      .item-image { aspect-ratio:1.2; font-size:2rem; }
+      .item-body { gap:.4rem; padding:.55rem; }
+      .item h3 { font-size:.78rem; line-height:1.2; }
+      .item p { display:none; }
+      .item-footer { align-items:center; flex-direction:row; gap:.35rem; }
+      .item .price { font-size:.75rem; }
+      .item .primary { min-height:2.6rem; padding:.45rem; font-size:.7rem; }
+      .menu-order { position:fixed; left:.5rem; right:.5rem; bottom:.5rem; z-index:4; height:25dvh; max-height:13rem; padding:.6rem; }
+      .menu-order .toolbar { gap:.4rem; margin-bottom:.3rem; }
+      .menu-order .toolbar h3 { margin:0; font-size:.9rem; }
+      .menu-order .toolbar .eyebrow { margin:0 0 .2rem; font-size:.6rem; }
+      .menu-order .toolbar .primary { min-height:2.5rem; padding:.45rem .7rem; font-size:.68rem; }
+      .menu-order-list { max-height:7dvh; gap:.25rem; }
+      .menu-order-line { padding-bottom:.2rem; font-size:.67rem; }
+      .menu-order-line small { font-size:.62rem; }
+      .menu-order .summary { gap:.2rem; margin-top:.3rem; padding-top:.3rem; font-size:.68rem; }
+      .menu-order .grand { font-size:.8rem; }
+      .menu-catalog { padding-bottom:27dvh; }
+      .actions { justify-content:stretch; }
+      .actions button { flex:1; }
+    }
+    .empty-state { grid-column:1/-1; padding:1rem .25rem; color:var(--muted); font-size:.9rem; }
+    @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; scroll-behavior:auto !important; } .menu-order { animation:none; } }
+  </style>
+</head>
+<body class="pre-menu">
+  <header><p class="eyebrow">Self-order kiosk // backend connected</p><h1>The Byte Bistro</h1><p>Choose your order type, build your meal, and follow it to the pass.</p></header>
+  <main>
+    <section class="screen welcome-screen" id="start-screen"><img class="welcome-logo" src="/backend/photo/byte.jpg" alt="The Byte Bistro" /><button class="choice tap-to-order" id="tap-to-order">TAP TO ORDER</button></section>
+    <section class="screen order-type-screen" id="order-type-screen" hidden><div class="order-type-grid"><button class="choice" data-order-type="DINE-IN">DINE-IN</button><button class="choice" data-order-type="TAKE-OUT">TAKE-OUT</button></div><p class="notice" id="start-notice" hidden></p></section>
+    <section class="screen" id="menu-screen" hidden><div class="menu-layout"><aside class="category-rail"><p class="eyebrow">Browse menu</p><h3>Categories</h3><nav class="category-list" id="categories" aria-label="Menu categories"></nav></aside><div class="menu-catalog"><div class="toolbar"><div><p class="eyebrow">Order type: <span id="order-type"></span></p><h2 id="category-heading">Choose your items</h2></div></div><div class="item-grid" id="items"></div></div><aside class="menu-order"><div class="toolbar"><div><p class="eyebrow">Current order</p><h3>Cart <span id="menu-cart-count">(0)</span></h3></div><button class="primary" id="menu-cart">Review</button></div><div class="menu-order-list" id="menu-order-lines"></div><div class="summary"><div class="summary-row"><span>Subtotal</span><strong id="menu-subtotal"></strong></div><div class="summary-row"><span>Tax / VAT</span><strong>Not configured</strong></div><div class="summary-row grand"><span>Total</span><strong id="menu-total"></strong></div></div></aside></div></section>
+    <section class="screen glass" id="item-screen" hidden><div class="toolbar"><h2 id="selected-name">Item</h2><button class="secondary" id="back-menu">Back to menu</button></div><p id="selected-description" class="muted"></p><div class="summary-row"><span>Unit price</span><strong id="selected-price"></strong></div><div class="quantity" style="margin-top:1rem"><button id="item-minus">-</button><strong id="item-quantity">1</strong><button id="item-plus">+</button></div><div class="actions"><button class="primary" id="add-item">Add to order</button></div></section>
+    <section class="screen glass" id="order-screen" hidden><div class="toolbar"><div><p class="eyebrow">Current order</p><h2>Cart</h2></div><button class="secondary" id="add-more">Add more items</button></div><div class="order-list" id="order-lines"></div><div class="summary"><div class="summary-row"><span>Subtotal</span><strong id="subtotal"></strong></div><div class="summary-row"><span>Discount</span><strong>None</strong></div><div class="summary-row"><span>Tax / VAT</span><strong>Not configured</strong></div><div class="summary-row grand"><span>Total</span><strong id="total"></strong></div></div><div class="actions"><button class="secondary" id="clear-order">Clear order</button><button class="primary" id="review-order">Review order</button></div><p class="notice" id="order-notice" hidden></p></section>
+    <section class="screen glass" id="review-screen" hidden><p class="eyebrow">Review before payment</p><h2>Review order</h2><div id="review-lines"></div><div class="summary" id="review-summary"></div><div class="actions"><button class="secondary" id="edit-order">Edit order</button><button class="secondary" id="review-add">Add more items</button><button class="primary" id="to-payment">Proceed to payment</button></div></section>
+    <section class="screen glass" id="payment-screen" hidden><p class="eyebrow">Payment</p><h2>Select payment method</h2><p class="muted">Payment must be confirmed by the backend. Cash remains awaiting cashier confirmation in POS.</p><div class="payment-grid"><button class="payment-choice" data-payment="CASH">Cash</button><button class="payment-choice" data-payment="CARD">Card</button><button class="payment-choice" data-payment="E-WALLET">E-wallet</button><button class="payment-choice" data-payment="ONLINE BANKING">Online banking</button><button class="payment-choice" data-payment="QR PH">QR Ph</button><button class="payment-choice" data-payment="CASH COUNTER">Cash counter</button></div><p class="notice" id="payment-notice" hidden></p><div class="actions"><button class="secondary" id="payment-back">Back to review</button><button class="primary" id="pay-now">Continue</button></div></section>
+    <section class="screen glass" id="placed-screen" hidden><p class="eyebrow">Customer order view</p><h2 id="placed-heading">Order placed</h2><div class="status"><p>Order / queue number</p><strong id="placed-number"></strong><p>Current status</p><strong id="placed-status"></strong><p>Preparing</p><strong id="placed-preparing">Waiting</strong><p>Ready</p><strong id="placed-ready">Waiting</strong><p id="waiting-message">Please wait while we prepare your order.</p></div><div class="receipt" id="receipt"></div><div class="actions"><button class="secondary" id="new-order">Start new order</button></div></section>
+  </main><footer>THE BYTE BISTRO // PLEASE ENJOY RESPONSIBLY</footer>
+  <script>
+    const money = new Intl.NumberFormat('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const state = { menu: [], category: '', orderType: '', cart: new Map(), selected: null, quantity: 1, payment: '', order: null, poll: null };
+    const $ = (id) => document.getElementById(id); const peso = (value) => `₱${money.format(Number(value || 0))}`;
+    $('menu-cart').textContent = 'Checkout';
+    let screenTransitionTimer = null;
+    let pendingScreen = null;
+    let transitionPhase = null;
+    const screenExitMs = 180;
+    const screenEnterMs = 320;
+    const show = (id) => {
+      const next = $(id);
+      const screens = [...document.querySelectorAll('.screen')];
+      if (screenTransitionTimer) {
+        clearTimeout(screenTransitionTimer);
+        if (transitionPhase === 'exit' && pendingScreen && pendingScreen !== next) pendingScreen.hidden = true;
+        screens.forEach((screen) => screen.classList.remove('is-leaving', 'is-entering'));
+        screenTransitionTimer = null;
+        pendingScreen = null;
+        transitionPhase = null;
+      }
+      const current = screens.find((screen) => !screen.hidden);
+      if (current === next) return;
+      if (!current || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        document.body.classList.toggle('pre-menu', ['start-screen', 'order-type-screen'].includes(id));
+        screens.forEach((screen) => { screen.hidden = screen !== next; });
+        return;
+      }
+      current.classList.add('is-leaving');
+      pendingScreen = next;
+      transitionPhase = 'exit';
+      screenTransitionTimer = window.setTimeout(() => {
+        current.hidden = true;
+        current.classList.remove('is-leaving');
+        document.body.classList.toggle('pre-menu', ['start-screen', 'order-type-screen'].includes(id));
+        next.hidden = false;
+        next.classList.add('is-entering');
+        void next.offsetWidth;
+        requestAnimationFrame(() => next.classList.remove('is-entering'));
+        transitionPhase = 'enter';
+        screenTransitionTimer = window.setTimeout(() => {
+          next.classList.remove('is-entering');
+          screenTransitionTimer = null;
+          pendingScreen = null;
+          transitionPhase = null;
+        }, screenEnterMs);
+      }, screenExitMs);
+    };
+    $('tap-to-order').onclick = () => show('order-type-screen');
+    const notice = (id, message, error = true) => { const element = $(id); element.textContent = message; element.className = `notice${error ? '' : ' ok'}`; element.hidden = false; };
+    async function request(path, options = {}) { const response = await fetch(path, { headers: { 'Content-Type': 'application/json', ...options.headers }, ...options }); const body = await response.json().catch(() => ({})); if (!response.ok) throw new Error(body.error?.message || `Backend returned ${response.status}`); return body; }
+    function total() { return [...state.cart.values()].reduce((sum, item) => sum + item.price * item.quantity, 0); }
+    function categoryLabel(category) { if (category === 'Mains' || category === 'Combo') return 'Main'; if (category === 'Starters / Sides') return 'Sides'; return category; }
+    function menuCategories() { const requested = ['Main', 'Pizza', 'Pasta', 'Sides', 'Desserts', 'Drinks']; const apiCategories = [...new Set(state.menu.map((item) => categoryLabel(item.category)))]; return [...requested, ...apiCategories.filter((category) => !requested.includes(category))]; }
+    function selectItem(item) { state.selected = item; state.quantity = 1; $('selected-name').textContent = item.name; $('selected-description').textContent = item.description || ''; $('selected-price').textContent = peso(item.price); $('item-quantity').textContent = '1'; show('item-screen'); }
+    function addToCart(item, quantity = 1) { const existing = state.cart.get(item.id); state.cart.set(item.id, { ...item, quantity:(existing?.quantity || 0) + quantity }); renderCart(); }
+    const cartRemovalMs = 180;
+    $('order-lines').addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-action]');
+      if (!button) return;
+      const line = button.closest('.line');
+      const index = [...$('order-lines').children].indexOf(line);
+      const item = [...state.cart.values()][index];
+      const removesItem = button.dataset.action === 'remove' || (button.dataset.action === 'minus' && item?.quantity === 1);
+      if (!item || !removesItem) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        state.cart.delete(item.id);
+        renderCart();
+        return;
+      }
+      line.classList.add('cart-line-out');
+      line.querySelectorAll('button').forEach((control) => { control.disabled = true; });
+      window.setTimeout(() => { state.cart.delete(item.id); renderCart(); }, cartRemovalMs);
+    }, true);
+    $('clear-order').addEventListener('click', (event) => {
+      if (!state.cart.size || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      $('clear-order').disabled = true;
+      $('order-lines').querySelectorAll('.line').forEach((line) => line.classList.add('cart-line-out'));
+      window.setTimeout(() => { state.cart.clear(); $('clear-order').disabled = false; renderCart(); }, cartRemovalMs);
+    }, true);
+    function renderCategories() { state.category = categoryLabel(state.category); const categories = menuCategories(); $('categories').replaceChildren(...categories.map((category) => { const button = document.createElement('button'); button.className = `secondary${category === state.category ? ' active' : ''}`; button.textContent = category; button.setAttribute('aria-pressed', String(category === state.category)); button.onclick = () => { state.category = category; renderCategories(); renderItems(); }; return button; })); }
+    function renderItems() { const items = state.menu.filter((item) => categoryLabel(item.category) === state.category && item.available !== false); $('category-heading').textContent = state.category || 'Menu'; if (!items.length) { const empty = document.createElement('p'); empty.className = 'empty-state'; empty.textContent = 'No items are available in this category.'; $('items').replaceChildren(empty); return; } $('items').replaceChildren(...items.map((item) => { const article = document.createElement('article'); article.className = 'item'; const image = document.createElement('button'); image.type = 'button'; image.className = 'item-image'; image.setAttribute('aria-label', `View details for ${item.name}`); if (item.image) { const photo = document.createElement('img'); photo.src = item.image; photo.alt = item.name; photo.loading = 'lazy'; image.append(photo); } else { const mark = document.createElement('span'); mark.textContent = item.name.trim().match(/^\S+/u)?.[0] || '•'; mark.setAttribute('aria-hidden', 'true'); image.append(mark); } image.onclick = () => selectItem(item); const body = document.createElement('div'); body.className = 'item-body'; body.innerHTML = '<h3></h3><div class="item-footer"><strong class="price"></strong><button class="primary" type="button">Add</button></div>'; body.querySelector('h3').textContent = item.name; body.querySelector('.price').textContent = peso(item.price); body.querySelector('button').onclick = () => addToCart(item); article.append(image, body); return article; })); }
+    function renderCart() { const items = [...state.cart.values()]; $('order-lines').replaceChildren(...items.map((item) => { const line = document.createElement('div'); line.className = 'line'; line.innerHTML = '<div><strong></strong><br /><small></small></div><div class="quantity"><button data-action="minus">-</button><span></span><button data-action="plus">+</button><button data-action="remove">Remove</button></div><strong></strong>'; line.querySelector('div strong').textContent = item.name; line.querySelector('small').textContent = `${item.category} // ${peso(item.price)} each`; line.querySelector('.quantity span').textContent = item.quantity; line.querySelectorAll('button').forEach((button) => { button.onclick = () => { if (button.dataset.action === 'plus') item.quantity = Math.min(99, item.quantity + 1); if (button.dataset.action === 'minus') item.quantity -= 1; if (button.dataset.action === 'remove' || item.quantity < 1) state.cart.delete(item.id); renderCart(); }; }); line.querySelectorAll('strong')[1].textContent = peso(item.price * item.quantity); return line; })); const menuLines = items.map((item) => { const line = document.createElement('div'); line.className = 'menu-order-line'; const name = document.createElement('strong'); name.textContent = item.name; const details = document.createElement('small'); details.textContent = `${item.category} // ${item.quantity} × ${peso(item.price)}`; const amount = document.createElement('strong'); amount.textContent = peso(item.price * item.quantity); const row = document.createElement('div'); row.className = 'summary-row'; row.append(name, amount); line.append(row, details); return line; }); $('menu-order-lines').replaceChildren(...menuLines); $('subtotal').textContent = peso(total()); $('total').textContent = peso(total()); $('menu-subtotal').textContent = peso(total()); $('menu-total').textContent = peso(total()); const quantity = items.reduce((sum, item) => sum + item.quantity, 0); $('menu-cart-count').textContent = `(${quantity})`; }
+    function renderReview() { $('review-lines').innerHTML = [...state.cart.values()].map((item) => `<div class="line"><span>${item.category} // ${item.name}<br /><small>${item.quantity} × ${peso(item.price)}</small></span><strong>${peso(item.price * item.quantity)}</strong></div>`).join(''); $('review-summary').innerHTML = `<div class="summary-row"><span>Subtotal</span><strong>${peso(total())}</strong></div><div class="summary-row"><span>Discount</span><strong>None</strong></div><div class="summary-row"><span>Tax / VAT</span><strong>Not configured</strong></div><div class="summary-row grand"><span>Total</span><strong>${peso(total())}</strong></div>`; }
+    function renderReceipt(order) { const payment = order.payment || {}; $('receipt').innerHTML = `<h3>Receipt #${order.order_number}</h3><p>${new Date(order.created_at).toLocaleString()} // ${order.order_type || state.orderType}</p><div class="receipt-items">${order.items.map((item) => `<div class="line"><span>${item.category} // ${item.name}<br />${item.quantity} × ${peso(item.unit_price)}</span><strong>${peso(item.subtotal)}</strong></div>`).join('')}</div><p>Subtotal: <strong>${peso(order.subtotal)}</strong></p><p>Discount: <strong>${order.discount ? `-${peso(order.discount)}` : 'None'}</strong></p><p>Tax / VAT: <strong>${order.tax ? peso(order.tax) : 'Not configured'}</strong></p><p>Total: <strong>${peso(order.total)}</strong></p><p>Payment: <strong>${payment.method || state.payment}</strong><br />Status: <strong>${payment.status}</strong><br />Reference: <strong>${payment.transaction_id || 'Not available'}</strong></p>${order.cash_received !== undefined ? `<p>Cash received: ${peso(order.cash_received)}<br />Change: ${peso(order.change)}</p>` : ''}`; }
+    async function refreshPlaced() { if (!state.order) return; try { const result = await request(`/api/customer-display/orders/${encodeURIComponent(state.order.order_number)}`); const order = result.order; state.order = { ...state.order, ...order }; $('placed-status').textContent = order.status; $('placed-preparing').textContent = ['PREPARING', 'READY', 'RECEIVED'].includes(order.status) ? 'Active' : 'Waiting'; $('placed-ready').textContent = ['READY', 'RECEIVED'].includes(order.status) ? 'Ready' : 'Waiting'; $('waiting-message').textContent = order.status === 'READY' ? 'Your order is ready for pickup.' : 'Please wait while we prepare your order.'; } catch (error) { } }
+    function key() { return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`; }
+    async function submitPayment() { if (!state.payment || !state.cart.size) return notice('payment-notice', 'Select a payment method and add items first.'); $('pay-now').disabled = true; try { const payload = { source:'KIOSK', orderType:state.orderType, items:[...state.cart.values()].map((item) => ({ item_id:item.id, quantity:item.quantity })), total:total(), paymentCategory:state.payment, paymentProvider:state.payment, idempotencyKey:key() }; const cash = ['CASH', 'CASH COUNTER'].includes(state.payment); const result = await request(cash ? '/api/orders/cash-intent' : '/api/payments', { method:'POST', body:JSON.stringify(payload) }); if (cash) { state.order = result.order; notice('payment-notice', 'Awaiting cashier confirmation in POS. Cash is not marked paid by the kiosk.', false); } else { let payment = result.payment; const started = Date.now(); while (payment.paymentStatus !== 'PAID') { if (Date.now() - started > 120000) throw new Error('Payment confirmation timed out.'); await new Promise((resolve) => setTimeout(resolve, 3000)); payment = (await request(`/api/payments/${encodeURIComponent(payment.payment_id)}/status`)).payment; if (['PAYMENT_FAILED', 'PAYMENT_CANCELLED', 'PAYMENT_EXPIRED'].includes(payment.paymentStatus)) throw new Error(`Payment ${payment.paymentStatus.toLowerCase()}.`); } state.order = (await request('/api/orders', { method:'POST', body:JSON.stringify({ ...payload, paymentId:payment.payment_id }) })).order; } $('placed-heading').textContent = cash ? 'Order received' : 'Order placed'; $('placed-number').textContent = `#${state.order.order_number} // Queue ${state.order.queue_number}`; $('placed-status').textContent = state.order.status; renderReceipt(state.order); show('placed-screen'); clearInterval(state.poll); state.poll = setInterval(refreshPlaced, 5000); } catch (error) { notice('payment-notice', error.message); } finally { $('pay-now').disabled = false; } }
+    document.querySelectorAll('[data-order-type]').forEach((button) => button.onclick = async () => { state.orderType = button.dataset.orderType; try { const result = await request('/api/menu'); state.menu = result.items || []; if (!state.menu.length) throw new Error('Menu is empty.'); state.category = state.menu[0].category; $('order-type').textContent = state.orderType; renderCategories(); renderItems(); show('menu-screen'); } catch (error) { notice('start-notice', error.message); } });
+    $('menu-cart').onclick = () => { renderCart(); show('order-screen'); }; $('back-menu').onclick = () => show('menu-screen'); $('item-minus').onclick = () => { state.quantity = Math.max(1, state.quantity - 1); $('item-quantity').textContent = state.quantity; }; $('item-plus').onclick = () => { state.quantity = Math.min(99, state.quantity + 1); $('item-quantity').textContent = state.quantity; }; $('add-item').onclick = () => { const old = state.cart.get(state.selected.id); state.cart.set(state.selected.id, { ...state.selected, quantity:(old?.quantity || 0) + state.quantity }); renderCart(); show('menu-screen'); }; $('add-more').onclick = () => show('menu-screen'); $('clear-order').onclick = () => { state.cart.clear(); renderCart(); }; $('review-order').onclick = () => { if (!state.cart.size) return notice('order-notice', 'Add an item before reviewing.'); renderReview(); show('review-screen'); }; $('edit-order').onclick = () => show('order-screen'); $('review-add').onclick = () => show('menu-screen'); $('to-payment').onclick = () => show('payment-screen'); document.querySelectorAll('[data-payment]').forEach((button) => button.onclick = () => { state.payment = button.dataset.payment; document.querySelectorAll('[data-payment]').forEach((candidate) => candidate.classList.toggle('selected', candidate === button)); }); $('payment-back').onclick = () => show('review-screen'); $('pay-now').onclick = submitPayment; $('new-order').onclick = () => { state.cart.clear(); state.order = null; state.payment = ''; clearInterval(state.poll); show('start-screen'); }; renderCart();
+  </script>
+</body>
+</html>

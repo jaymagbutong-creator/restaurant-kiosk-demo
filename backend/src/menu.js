@@ -1,0 +1,32 @@
+const menuItems = [
+  ['byte-sized-burger', '🍔 Byte-Sized Burger', 'Mains', 300],
+  ['overclocked-burger', '🍔 The Overclocked Burger', 'Mains', 295],
+  ['cpu-club-sandwich', '🥪 CPU Club Sandwich', 'Mains', 290],
+  ['firewall-fried-chicken', '🍗 Firewall Fried Chicken', 'Mains', 285],
+  ['motherboard-meatloaf', '🍖 Motherboard Meatloaf', 'Mains', 280],
+  ['debugging-steak', '🥩 Debugging Steak', 'Mains', 275],
+  ['pizza-not-found', '🍕 404 Pizza Not Found', 'Pizza', 270],
+  ['pixel-pepperoni', '🍕 Pixel Pepperoni', 'Pizza', 265],
+  ['ctrl-alt-delicious', '🍕 Ctrl+Alt+Delicious', 'Pizza', 260],
+  ['binary-bbq', '🍗 Binary BBQ', 'Pizza', 255],
+  ['ram-wings', '🍗 Ram Wings', 'Starters / Sides', 250],
+  ['processor-poppers', '🌶️ Processor Poppers', 'Starters / Sides', 245],
+  ['compile-fries', '🍟 Compile Fries', 'Starters / Sides', 240],
+  ['syntax-error-salad', '🥗 Syntax Error Salad', 'Starters / Sides', 235],
+  ['hard-drive-hummus', '🧆 Hard Drive Hummus & Chips', 'Starters / Sides', 230],
+  ['server-down-soup', '🍲 Server Down Soup', 'Soups / Bowls', 225],
+  ['terminal-tom-yum', '🍜 Terminal Tom Yum', 'Soups / Bowls', 220],
+  ['algorithm-ramen', '🍜 Algorithm Ramen', 'Soups / Bowls', 215],
+  ['the-java', '☕ The Java', 'Drinks', 210],
+  ['ctrl-c-ctrl-v-cocktail', '🍹 Ctrl+C, Ctrl+V Cocktail', 'Drinks', 205],
+  ['blue-screen-blue-lagoon', '🥤 Blue Screen Blue Lagoon', 'Drinks', 200],
+  ['wifi-password-ipa', '🍺 Wi-Fi Password IPA', 'Drinks', 195],
+  ['cache-cooler', '🧋 Cache Cooler', 'Drinks', 190],
+  ['cookies', '🍪 Cookie(s)', 'Desserts', 185],
+  ['bug-fix-brownie', '🍫 Bug Fix Brownie', 'Desserts', 180],
+  ['segfault-sundae', '🍨 Segfault Sundae', 'Desserts', 175],
+  ['recursive-cake', '🍰 Recursive Cake', 'Desserts', 170],
+  ['full-stack', '🍔 The Full Stack', 'Combo', 165]
+].map(([id, name, category, price]) => ({ id, name, category, price, available: true, image: null }));
+
+module.exports = { menuItems };

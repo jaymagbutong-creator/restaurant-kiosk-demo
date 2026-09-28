@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Byte Bistro KDS</title>
+    <style>
+      :root {
+        --ink: #0B0B0B;
+        --paper: #F5F0E8;
+        --cream: #E8E1D6;
+        --operational-red: #9B1D18;
+        --signal-red: #C53227;
+        --orange: #EE6D1C;
+        --glow: #FFB326;
+        --stone: #6B6B66;
+        --line: rgba(107, 107, 102, .45);
+        --green: #275f4a;
+      }
+
+      * { box-sizing: border-box; }
+      body { margin: 0; min-width: 900px; color: var(--ink); background: var(--paper); font-family: Georgia, 'Times New Roman', serif; }
+      button { border: 0; border-radius: 0; cursor: pointer; }
+      button:focus-visible { outline: 3px solid var(--glow); outline-offset: 2px; }
+      header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 2rem; color: var(--paper); background: var(--ink); border-bottom: 5px solid var(--orange); }
+      .eyebrow { margin: 0 0 .25rem; color: var(--glow); font: 700 .7rem 'Courier New', monospace; letter-spacing: .13em; text-transform: uppercase; }
+      h1 { margin: 0; font-size: 2.2rem; letter-spacing: -.04em; }
+      .system-status { display: flex; align-items: center; gap: .5rem; font: 700 .75rem 'Courier New', monospace; text-transform: uppercase; }
+      .system-status::before { width: .7rem; height: .7rem; content: ''; background: var(--glow); border-radius: 50%; }
+      .system-status.offline::before { background: var(--signal-red); }
+      .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem 2rem; background: var(--cream); border-bottom: 1px solid var(--line); }
+      .toolbar p { margin: 0; color: var(--stone); font: .75rem 'Courier New', monospace; }
+      .toolbar button { padding: .65rem .85rem; color: var(--paper); background: var(--operational-red); font: 700 .75rem 'Courier New', monospace; text-transform: uppercase; }
+      .toolbar button:hover { background: var(--orange); }
+      .board { display: grid; grid-template-columns: repeat(3, minmax(17rem, 1fr)); gap: 1rem; padding: 1rem 2rem 2rem; }
+      .lane { min-height: calc(100vh - 8.5rem); background: var(--cream); border-top: 5px solid var(--operational-red); }
+      .lane.preparing { border-top-color: var(--orange); }
+      .lane.ready { border-top-color: var(--green); }
+      .lane-header { display: flex; align-items: baseline; justify-content: space-between; padding: .8rem 1rem; border-bottom: 1px solid var(--line); }
+      .lane-header h2 { margin: 0; font-size: 1.5rem; letter-spacing: .02em; }
+      .lane-header span { color: var(--stone); font: 700 .75rem 'Courier New', monospace; }
+      .lane-orders { display: grid; gap: .75rem; padding: .75rem; align-content: start; }
+      .order-card { padding: 1rem; background: var(--paper); border: 1px solid var(--line); box-shadow: 3px 3px 0 rgba(11, 11, 11, .12); }
+      .order-card.delayed { border-color: var(--signal-red); box-shadow: 4px 4px 0 var(--signal-red); }
+      .order-head { display: flex; align-items: start; justify-content: space-between; gap: .75rem; }
+      .order-head h3 { margin: 0; font-size: 1.55rem; }
+      .order-source { margin: .25rem 0 0; color: var(--stone); font: .68rem 'Courier New', monospace; text-transform: uppercase; }
+      .timer { padding: .35rem .45rem; color: var(--ink); background: var(--glow); font: 700 .75rem 'Courier New', monospace; white-space: nowrap; }
+      .delayed .timer { color: var(--paper); background: var(--signal-red); }
+      .items { margin: .9rem 0; border-top: 2px solid var(--ink); }
+      .item { padding: .65rem 0; border-bottom: 1px solid var(--line); }
+      .item-main { display: flex; gap: .55rem; font-size: 1.08rem; font-weight: 700; }
+      .quantity { min-width: 2rem; color: var(--operational-red); font: 700 1rem 'Courier New', monospace; }
+      .modifier, .note { margin: .3rem 0 0 2.55rem; color: var(--stone); font: .76rem/1.35 'Courier New', monospace; }
+      .note { margin: .8rem 0 0; padding: .65rem; color: var(--ink); background: var(--cream); border-left: 3px solid var(--orange); }
+      .card-footer { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-top: .85rem; }
+      .payment { color: var(--stone); font: .68rem 'Courier New', monospace; text-transform: uppercase; }
+      .status { padding: .3rem .45rem; color: var(--paper); background: var(--operational-red); font: 700 .65rem 'Courier New', monospace; }
+      .preparing .status { background: var(--orange); }
+      .ready .status { background: var(--green); }
+      .action { width: 100%; margin-top: .8rem; padding: .8rem; color: var(--paper); background: var(--ink); font: 700 .8rem 'Courier New', monospace; text-transform: uppercase; }
+      .action:hover { background: var(--orange); }
+      .empty { padding: 1.2rem; color: var(--stone); font: .75rem 'Courier New', monospace; }
+      .system-error { margin: 1rem 2rem 0; padding: .8rem 1rem; color: var(--paper); background: var(--signal-red); font: 700 .78rem 'Courier New', monospace; }
+      .system-error[hidden] { display: none; }
+      @media (max-width: 1000px) { body { min-width: 0; } header, .toolbar { padding-left: 1rem; padding-right: 1rem; } .board { padding-left: 1rem; padding-right: 1rem; } }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div><p class="eyebrow">Kitchen display // shared backend</p><h1>The Byte Bistro KDS</h1></div>
+      <div class="system-status" id="system-status">Connecting</div>
+    </header>
+    <div class="toolbar">
+      <p id="updated">Waiting for kitchen orders</p>
+      <button id="refresh" type="button">Reconcile Orders</button>
+    </div>
+    <div class="system-error" id="system-error" hidden>CONNECTION LOST // Kitchen updates are not being confirmed by the backend.</div>
+    <main class="board" aria-label="Kitchen order board">
+      <section class="lane" data-lane="NEW"><div class="lane-header"><h2>NEW</h2><span id="count-new">0</span></div><div class="lane-orders" id="lane-new"></div></section>
+      <section class="lane preparing" data-lane="PREPARING"><div class="lane-header"><h2>PREPARING</h2><span id="count-preparing">0</span></div><div class="lane-orders" id="lane-preparing"></div></section>
+      <section class="lane ready" data-lane="READY"><div class="lane-header"><h2>READY</h2><span id="count-ready">0</span></div><div class="lane-orders" id="lane-ready"></div></section>
+    </main>
+
+    <script>
+      const state = { orders: new Map(), connected: false };
+      const lanes = ['NEW', 'PREPARING', 'READY'];
+      const systemStatus = document.getElementById('system-status');
+      const systemError = document.getElementById('system-error');
+      const updated = document.getElementById('updated');
+      const orderId = (order) => order.id || order.order_id;
+      const orderStatus = (order) => order.status || order.order_status || 'NEW';
+      const laneForStatus = (status) => status === 'CONFIRMED' ? 'NEW' : status;
+      const orderNumber = (order) => order.order_number || order.orderNumber || order.id;
+      const itemList = (order) => order.items || [];
+      const createdAt = (order) => order.created_at || order.createdAt;
+      const elapsedSeconds = (order) => Math.max(0, Math.floor((Date.now() - new Date(createdAt(order)).getTime()) / 1000));
+      const formatElapsed = (seconds) => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+
+      function setConnection(connected) {
+        state.connected = connected;
+        systemStatus.textContent = connected ? 'Backend connected' : 'Connection lost';
+        systemStatus.classList.toggle('offline', !connected);
+        systemError.hidden = connected;
+      }
+
+      function addOrUpdateOrder(order) {
+        const id = orderId(order);
+        if (!id) return;
+        if (['CANCELLED', 'COMPLETED', 'RECEIVED'].includes(orderStatus(order))) state.orders.delete(id);
+        else state.orders.set(id, order);
+      }
+
+      function render() {
+        lanes.forEach((lane) => {
+          const laneOrders = [...state.orders.values()]
+            .filter((order) => laneForStatus(orderStatus(order)) === lane)
+            .sort((a, b) => new Date(createdAt(a)) - new Date(createdAt(b)));
+          const container = document.getElementById(`lane-${lane.toLowerCase()}`);
+          const count = document.getElementById(`count-${lane.toLowerCase()}`);
+          count.textContent = laneOrders.length;
+          container.replaceChildren();
+          if (!laneOrders.length) { const empty = document.createElement('p'); empty.className = 'empty'; empty.textContent = 'No active orders.'; container.append(empty); return; }
+          laneOrders.forEach((order) => container.append(createCard(order)));
+        });
+      }
+
+      function createCard(order) {
+        const card = document.createElement('article');
+        const seconds = elapsedSeconds(order);
+        const delayed = seconds >= 15 * 60;
+        const status = orderStatus(order);
+        const nextStatus = ['NEW', 'CONFIRMED'].includes(status) ? 'PREPARING' : status === 'PREPARING' ? 'READY' : status === 'READY' ? 'RECEIVED' : null;
+        card.className = `order-card${delayed ? ' delayed' : ''}`;
+        card.dataset.orderId = orderId(order);
+        const itemsHtml = itemList(order).map((item) => {
+          const modifiers = item.modifiers || item.modifier || item.options;
+          return `<div class="item"><div class="item-main"><span class="quantity">${item.quantity} ×</span><span>${escapeHtml(item.name)}</span></div>${modifiers ? `<p class="modifier">MODIFIERS: ${escapeHtml(Array.isArray(modifiers) ? modifiers.join(', ') : modifiers)}</p>` : ''}</div>`;
+        }).join('');
+        const action = nextStatus ? `<button class="action" data-status="${nextStatus}" type="button">${['NEW', 'CONFIRMED'].includes(status) ? 'Start Preparing' : status === 'PREPARING' ? 'READY' : 'FINISH'}</button>` : '';
+        card.innerHTML = `<div class="order-head"><div><h3>ORDER #${escapeHtml(orderNumber(order))}</h3><p class="order-source">QUEUE ${escapeHtml(order.queue_number || order.queueNumber || 'N/A')} // ${escapeHtml(order.source || 'KIOSK')} // ${escapeHtml(new Date(createdAt(order)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</p></div><span class="timer">WAITING ${formatElapsed(seconds)}</span></div><div class="items">${itemsHtml}</div>${order.note || order.special_instructions ? `<p class="note">CUSTOMER NOTE: ${escapeHtml(order.note || order.special_instructions)}</p>` : ''}<div class="card-footer"><span class="payment">Payment: ${escapeHtml(order.payment?.status || order.payment_status || 'UNPAID')}</span><span class="status">${status}</span></div>${action}`;
+        return card;
+      }
+
+      function escapeHtml(value) { return String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]); }
+      async function request(path, options = {}) {
+        const response = await fetch(path, { headers: { 'Content-Type': 'application/json', ...options.headers }, ...options });
+        if (!response.ok) throw new Error(`Backend returned ${response.status}`);
+        return response.status === 204 ? null : response.json();
+      }
+      async function reconcile() {
+        try {
+          const result = await request('/api/kitchen/orders');
+          state.orders.clear();
+          (result.orders || []).forEach(addOrUpdateOrder);
+          setConnection(true);
+          updated.textContent = `Reconciled ${new Date().toLocaleTimeString()}`;
+          render();
+        } catch (error) { setConnection(false); }
+      }
+      async function updateStatus(order, status, button) {
+        button.disabled = true;
+        try {
+          const result = await request(`/api/kitchen/orders/${encodeURIComponent(orderId(order))}/status`, { method: 'PATCH', body: JSON.stringify({ status, changed_by: 'KDS' }) });
+          if (!result.order || orderStatus(result.order) !== status) throw new Error('Backend did not confirm the requested order status.');
+          addOrUpdateOrder(result.order);
+          setConnection(true);
+          updated.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+          render();
+        } catch (error) {
+          button.disabled = false;
+          setConnection(true);
+          updated.textContent = 'Unable to update order status. Please try again.';
+        }
+      }
+
+      document.querySelector('.board').addEventListener('click', (event) => {
+        const button = event.target.closest('[data-status]');
+        if (!button) return;
+        const order = state.orders.get(button.closest('[data-order-id]').dataset.orderId);
+        if (order) updateStatus(order, button.dataset.status, button);
+      });
+      document.getElementById('refresh').addEventListener('click', reconcile);
+      function connectEvents() {
+        if (!window.EventSource) return;
+        const events = new EventSource('/api/orders/events');
+        events.onopen = () => setConnection(true);
+        events.onmessage = (message) => { try { const event = JSON.parse(message.data); if (event.order) addOrUpdateOrder(event.order); render(); } catch (error) {} };
+        events.onerror = async () => {
+          events.close();
+          try {
+            await request('/api/health');
+            setConnection(true);
+            await reconcile();
+          } catch (error) {
+            setConnection(false);
+          }
+          setTimeout(connectEvents, 5000);
+        };
+      }
+      reconcile();
+      connectEvents();
+      setInterval(() => { reconcile(); render(); }, 10000);
+      setInterval(render, 1000);
+    </script>
+  </body>
+</html>
